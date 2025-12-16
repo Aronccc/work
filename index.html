@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>魂斷迴廊：午夜禁錮</title>
+    
+    <!-- 引入 React -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- 引入 Babel 用於解析 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- 自定義樣式 -->
+    <style>
+        body {
+            background-color: #0c0a09; /* stone-950 */
+            color: #e7e5e4; /* stone-200 */
+            font-family: system-ui, -apple-system, sans-serif;
+            overflow-y: auto; 
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slideUp { animation: slideUp 0.5s ease-out forwards; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
+        
+        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .animate-popIn { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        
+        @keyframes pulse-slow { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .animate-pulse-slow { animation: pulse-slow 3s infinite; }
+        
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        @keyframes shake { 
+            0%, 100% { transform: translateX(0); } 
+            25% { transform: translateX(-5px); } 
+            75% { transform: translateX(5px); } 
+        }
+        .animate-shake { animation: shake 0.2s ease-in-out; }
+
+        @keyframes fog-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.9; }
+        }
+        .animate-fog { animation: fog-pulse 5s infinite ease-in-out; }
+
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        
+        .box-glow { box-shadow: 0 0 15px rgba(56, 189, 248, 0.6); }
+        .shadow-red-glow { text-shadow: 0 0 10px rgba(239, 68, 68, 0.8), 0 0 20px rgba(185, 28, 28, 0.8); }
+        .text-shadow-lg { text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); }
+        .glitch-effect { text-shadow: 2px 0 #3b82f6, -2px 0 #ef4444; }
+
+        .btn-primary { 
+            @apply px-6 py-2 bg-indigo-900 border border-indigo-500 text-indigo-100 rounded hover:bg-indigo-800 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+        }
+        .btn-secondary {
+            @apply px-4 py-2 bg-stone-800 border border-stone-600 text-stone-300 rounded hover:bg-stone-700 transition-all active:scale-95;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+        // --- Icon Component Wrapper for Lucide ---
+        const Icon = ({ name, size = 24, className = "", ...props }) => {
+            const lucideIcon = lucide.icons[name];
+            if (!lucideIcon) return null;
+            return (
+                <svg 
+                    xmlns="http://www.w3.org/2000/svg"
+                    width={size}
+                    height={size}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`lucide lucide-${name.toLowerCase()} ${className}`}
+                    {...props}
+                >
+                    {lucideIcon.map((child, index) => {
+                        const [tag, attrs] = child;
+                        return React.createElement(tag, { ...attrs, key: index });
+                    })}
+                </svg>
+            );
+        };
+
+        const Eye = (p) => <Icon name="Eye" {...p} />;
+        const Terminal = (p) => <Icon name="Terminal" {...p} />;
+        const Clock = (p) => <Icon name="Clock" {...p} />;
+        const Ghost = (p) => <Icon name="Ghost" {...p} />;
+        const Lock = (p) => <Icon name="Lock" {...p} />;
+        const Unlock = (p) => <Icon name="Unlock" {...p} />;
+        const RotateCcw = (p) => <Icon name="RotateCcw" {...p} />;
+        const Zap = (p) => <Icon name="Zap" {...p} />;
+        const Activity = (p) => <Icon name="Activity" {...p} />;
+        const Hash = (p) => <Icon name="Hash" {...p} />;
+        const Disc = (p) => <Icon name="Disc" {...p} />;
+        const MousePointerClick = (p) => <Icon name="MousePointerClick" {...p} />;
+        const MoveRight = (p) => <Icon name="MoveRight" {...p} />;
+        const AlertTriangle = (p) => <Icon name="AlertTriangle" {...p} />;
+        const ShieldAlert = (p) => <Icon name="ShieldAlert" {...p} />;
+        const Droplets = (p) => <Icon name="Droplets" {...p} />;
+        const Sword = (p) => <Icon name="Sword" {...p} />;
+        const Crosshair = (p) => <Icon name="Crosshair" {...p} />;
+        const Eraser = (p) => <Icon name="Eraser" {...p} />;
+        const SlidersHorizontal = (p) => <Icon name="SlidersHorizontal" {...p} />;
+        const ChevronUp = (p) => <Icon name="ChevronUp" {...p} />;
+        const ChevronDown = (p) => <Icon name="ChevronDown" {...p} />;
+        const Radio = (p) => <Icon name="Radio" {...p} />;
+        const Link2 = (p) => <Icon name="Link2" {...p} />;
+        const Skull = (p) => <Icon name="Skull" {...p} />;
+        const MessageSquare = (p) => <Icon name="MessageSquare" {...p} />;
+        const MapPin = (p) => <Icon name="MapPin" {...p} />;
+        const Brain = (p) => <Icon name="Brain" {...p} />;
+        const Sparkles = (p) => <Icon name="Sparkles" {...p} />;
+        const RefreshCcw = (p) => <Icon name="RefreshCcw" {...p} />;
+        const Minimize2 = (p) => <Icon name="Minimize2" {...p} />;
+        const Grid = (p) => <Icon name="Grid" {...p} />;
+        const Sun = (p) => <Icon name="Sun" {...p} />;
+        const Moon = (p) => <Icon name="Moon" {...p} />;
+        const Star = (p) => <Icon name="Star" {...p} />;
+        const Bomb = (p) => <Icon name="Bomb" {...p} />;
+        const Copy = (p) => <Icon name="Copy" {...p} />;
+        const Navigation = (p) => <Icon name="Navigation" {...p} />;
+        const Target = (p) => <Icon name="Target" {...p} />;
+        const Rocket = (p) => <Icon name="Rocket" {...p} />;
+        const Compass = (p) => <Icon name="Compass" {...p} />;
+        const Hand = (p) => <Icon name="Hand" {...p} />;
+        const Volume2 = (p) => <Icon name="Volume2" {...p} />;
+        const VolumeX = (p) => <Icon name="VolumeX" {...p} />;
+        const Bell = (p) => <Icon name="Bell" {...p} />;
+        const CloudFog = (p) => <Icon name="CloudFog" {...p} />;
+
+        // --- Sound Manager ---
+        const SoundManager = {
+            ctx: null,
+            masterGain: null,
+            bgmOscillators: [],
+            isMuted: false,
+            isInitialized: false,
+
+            init: function() {
+                if (this.isInitialized) return;
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                    this.masterGain = this.ctx.createGain();
+                    this.masterGain.gain.value = 0.3; 
+                    this.masterGain.connect(this.ctx.destination);
+                    this.isInitialized = true;
+                } catch (e) {
+                    console.error("Web Audio API not supported", e);
+                }
+            },
+
+            toggleMute: function() {
+                this.isMuted = !this.isMuted;
+                if (this.ctx) {
+                    if (this.isMuted) {
+                        this.ctx.suspend();
+                    } else {
+                        this.ctx.resume();
+                    }
+                }
+                return this.isMuted;
+            },
+
+            startBGM: function() {
+                if (!this.ctx || this.bgmOscillators.length > 0) return;
+                
+                const createDrone = (freq, type, pan) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    const panner = this.ctx.createStereoPanner();
+                    osc.type = type;
+                    osc.frequency.value = freq;
+                    const lfo = this.ctx.createOscillator();
+                    lfo.type = 'sine';
+                    lfo.frequency.value = 0.1 + Math.random() * 0.1;
+                    const lfoGain = this.ctx.createGain();
+                    lfoGain.gain.value = 5; 
+                    lfo.connect(lfoGain);
+                    lfoGain.connect(osc.frequency);
+                    lfo.start();
+                    gain.gain.value = 0.05; 
+                    panner.pan.value = pan;
+                    osc.connect(gain);
+                    gain.connect(panner);
+                    panner.connect(this.masterGain);
+                    osc.start();
+                    return { osc, lfo, gain }; 
+                };
+                this.bgmOscillators.push(createDrone(55, 'triangle', -0.5)); 
+                this.bgmOscillators.push(createDrone(58, 'sine', 0.5));     
+                this.bgmOscillators.push(createDrone(110, 'sine', 0));      
+            },
+
+            stopBGM: function() {
+                this.bgmOscillators.forEach(node => {
+                    try { node.osc.stop(); node.lfo.stop(); } catch(e) {}
+                });
+                this.bgmOscillators = [];
+            },
+
+            playSFX: function(type) {
+                if (this.isMuted || !this.ctx) return;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+
+                const t = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+
+                switch (type) {
+                    case 'click': 
+                        osc.type = 'sine'; osc.frequency.setValueAtTime(800, t); osc.frequency.exponentialRampToValueAtTime(1200, t + 0.05);
+                        gain.gain.setValueAtTime(0.1, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+                        osc.start(t); osc.stop(t + 0.05); break;
+                    case 'hover':
+                        osc.type = 'triangle'; osc.frequency.setValueAtTime(400, t);
+                        gain.gain.setValueAtTime(0.02, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+                        osc.start(t); osc.stop(t + 0.03); break;
+                    case 'typing':
+                        const bufferSize = this.ctx.sampleRate * 0.03; 
+                        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                        const data = buffer.getChannelData(0);
+                        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                        const noise = this.ctx.createBufferSource();
+                        noise.buffer = buffer;
+                        const noiseGain = this.ctx.createGain();
+                        noiseGain.gain.value = 0.05;
+                        noise.connect(noiseGain);
+                        noiseGain.connect(this.masterGain);
+                        noise.start(); break;
+                    case 'success':
+                        ['sine', 'triangle'].forEach((w, i) => {
+                            const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+                            o.type = w; o.connect(g); g.connect(this.masterGain);
+                            o.frequency.setValueAtTime(i===0?523.25:659.25, t); o.frequency.linearRampToValueAtTime(i===0?1046.50:1318.51, t + 0.3);
+                            g.gain.setValueAtTime(0.1, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+                            o.start(t); o.stop(t + 0.6);
+                        }); break;
+                    case 'error':
+                        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, t); osc.frequency.linearRampToValueAtTime(50, t + 0.3);
+                        gain.gain.setValueAtTime(0.2, t); gain.gain.linearRampToValueAtTime(0.001, t + 0.3);
+                        osc.start(t); osc.stop(t + 0.3); break;
+                    case 'unlock':
+                        osc.type = 'square'; osc.frequency.setValueAtTime(100, t); osc.frequency.exponentialRampToValueAtTime(40, t + 0.2);
+                        gain.gain.setValueAtTime(0.2, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+                        osc.start(t); osc.stop(t + 0.3); break;
+                    case 'shoot':
+                        osc.type = 'square'; osc.frequency.setValueAtTime(800, t); osc.frequency.exponentialRampToValueAtTime(200, t + 0.15);
+                        gain.gain.setValueAtTime(0.1, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+                        osc.start(t); osc.stop(t + 0.15); break;
+                    case 'heartbeat':
+                        osc.type = 'sine'; osc.frequency.setValueAtTime(60, t); osc.frequency.exponentialRampToValueAtTime(10, t + 0.2);
+                        gain.gain.setValueAtTime(0.5, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+                        osc.start(t); osc.stop(t + 0.2); break;
+                }
+            }
+        };
+
+        // --- Data ---
+        const GAME_DURATION = 600; // 10 minutes
+        const STAGES = { INTRO: 'intro', PHASE1: 'phase1_elements', PHASE1_COMPLETE: 'phase1_complete', PHASE2: 'phase2_ghosts', PHASE3: 'phase3_compass', FINALE_CHOICE: 'finale_choice', FINALE_CODE: 'finale_code', ENDING: 'ending' };
+        
+        // Items
+        const RAW_ELEMENTS = [
+            { id: 'water', name: '水', icon: '💧', type: 'element', color: 'bg-blue-900 border-blue-600', isTrap: false },
+            { id: 'wood', name: '木', icon: '🌲', type: 'element', color: 'bg-green-900 border-green-600', isTrap: false },
+            { id: 'fire', name: '火', icon: '🔥', type: 'element', color: 'bg-red-900 border-red-600', isTrap: false },
+            { id: 'earth', name: '土', icon: '⛰️', type: 'element', color: 'bg-amber-900 border-amber-600', isTrap: false },
+            { id: 'metal', name: '金', icon: '⚔️', type: 'element', color: 'bg-stone-600 border-stone-400', isTrap: true }, 
+            { id: 'bagua1', name: '乾', icon: '☰', type: 'bagua', color: 'bg-gray-800 border-gray-500', isTrap: true },    
+            { id: 'bagua2', name: '坤', icon: '☷', type: 'bagua', color: 'bg-gray-800 border-gray-500', isTrap: true },
+            { id: 'sun', name: '日', icon: '☀️', type: 'celestial', color: 'bg-orange-900 border-orange-500', isTrap: true },
+            { id: 'moon', name: '月', icon: '🌙', type: 'celestial', color: 'bg-indigo-950 border-indigo-400', isTrap: true },
+            { id: 'star', name: '星', icon: '⭐', type: 'celestial', color: 'bg-purple-900 border-purple-500', isTrap: true },
+        ];
+        
+        const NUMBERS = Array.from({ length: 10 }, (_, i) => ({ id: `num_${i}`, name: `${i}`, icon: `${i}`, type: 'number', value: `${i}`, color: 'bg-emerald-900/50 border-emerald-700' }));
+        
+        // New Direction Items for Finale
+        const DIRECTIONS = [
+            { id: 'dir_n', name: '北', icon: '北', type: 'direction', color: 'bg-slate-800 border-slate-600' },
+            { id: 'dir_e', name: '東', icon: '東', type: 'direction', color: 'bg-slate-800 border-slate-600' },
+            { id: 'dir_s', name: '南', icon: '南', type: 'direction', color: 'bg-slate-800 border-slate-600' },
+            { id: 'dir_w', name: '西', icon: '西', type: 'direction', color: 'bg-slate-800 border-slate-600' },
+        ];
+
+        const TIANGAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+        
+        const SCRIPTS = {
+            INTRO_START: [{ speaker: 'SYSTEM', text: '檢測到生體反應。午夜禁錮儀式啟動。' }, { speaker: 'SYSTEM', text: '警告：封印完整度 15%。預計在一小時內完全破裂。' }, { speaker: 'AOI', text: '門被鎖死了...那個聲音是怎麼回事？這裡的靈氣流動非常混亂。' }, { speaker: 'REN', text: '冷靜點，葵。這是典型的「密室結構」。看那個計時器，我們只有60分鐘加固封印。' }, { speaker: 'MASK', text: '呵呵呵...歡迎，新的宿主。放棄那些晦澀的古物吧...' }, { speaker: 'MASK', text: '答案永遠在最簡單的數字序列之中...聽我的，你們就能得救。' }, { speaker: 'AOI', text: '別聽它的！那是夜叉面的誘惑。蓮，我們得交換視角，找出「儀軌卷軸」和「九條靜流」的筆記。' }],
+            PHASE1_START: [{ speaker: 'REN', text: '我這邊偵測到十個不穩定的能量源。似乎需要特定的順序才能排列。' }, { speaker: 'AOI', text: '我看到了隱藏的金箔圖案...是「五行相生」。水生木，木生火...我們必須排除雜質。' }],
+            PHASE1_COMPLETE: [{ speaker: 'SYSTEM', text: '第一道封印：解除。獲得神器 [八尺瓊勾玉] 與 [鎮魂鈴]。' }, { speaker: 'SYSTEM', text: '警告：地殼變動偵測。通道已開啟。' }, { speaker: 'MASK', text: '不錯嘛...但你們能抵抗內心的恐懼嗎？' }],
+            PHASE2_START: [{ speaker: 'AOI', text: '這裡有四道「心之試煉」擋住了去路。看來必須先證明我們的能力。' }, { speaker: 'REN', text: '邏輯、記憶、導航與專注...完成這四個挑戰，就能穩定靈力頻率。' }],
+            PHASE3_START: [{ speaker: 'SYSTEM', text: '第二道封印：解除。獲得神器 [八咫鏡]。' }, { speaker: 'AOI', text: '迷霧很濃...看不清方位。' }, { speaker: 'REN', text: '葵，試試用鎮魂鈴驅散迷霧。' }],
+            FINALE_CHOICE: [{ speaker: 'SYSTEM', text: '最終封印核心顯現。檢測到高濃度穢氣阻擋。' }, { speaker: 'AOI', text: '那是...一把生鏽的儀式短刀。筆記上說可以用它切斷束縛，但是...會有代價。' }, { speaker: 'MASK', text: '拿起來吧...只需要一秒鐘，所有的痛苦都會結束。為什麼要浪費時間淨化呢？' }, { speaker: 'REN', text: '葵，時間不多了。做決定吧。' }],
+        };
+
+        // --- Sub Components ---
+        const Avatar = ({ char, floating = false }) => {
+            const styles = {
+                AOI: { bg: 'bg-indigo-900', border: 'border-indigo-400', img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Aoi&backgroundColor=b6e3f4&hair=long01&clothing=blazerAndShirt&eyes=happy' },
+                REN: { bg: 'bg-emerald-900', border: 'border-emerald-400', img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Ren&backgroundColor=c0aede&hair=short02&glasses=round&clothing=hoodie' },
+                SYSTEM: { bg: 'bg-red-950', border: 'border-red-600', icon: <Activity size={32} className="text-red-500 animate-pulse" /> },
+                MASK: { bg: 'bg-purple-950', border: 'border-purple-500', icon: <Ghost size={32} className="text-purple-400" /> },
+            };
+            const s = styles[char] || styles.SYSTEM;
+            return (
+                <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full border-4 ${s.bg} ${s.border} flex items-center justify-center shadow-lg relative shrink-0 ${floating ? 'animate-float' : ''} overflow-hidden`}>
+                    {s.img ? <img src={s.img} alt={char} className="w-full h-full object-cover" /> : s.icon}
+                    {!s.img && <React.Fragment><div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-white/50 rounded-tr-full"></div><div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-white/50 rounded-bl-full"></div></React.Fragment>}
+                </div>
+            );
+        };
+
+        const useTypewriter = (text, speed = 30) => {
+            const [displayedText, setDisplayedText] = useState('');
+            const [isTyping, setIsTyping] = useState(false);
+            useEffect(() => {
+                setDisplayedText(''); setIsTyping(true); let i = 0;
+                const timer = setInterval(() => {
+                    if (i < text.length) { setDisplayedText(prev => prev + text.charAt(i)); if (Math.random() > 0.5) SoundManager.playSFX('typing'); i++; } 
+                    else { setIsTyping(false); clearInterval(timer); }
+                }, speed);
+                return () => clearInterval(timer);
+            }, [text, speed]);
+            return { displayedText, isTyping };
+        };
+
+        const DialogueBox = ({ dialogue, onNext }) => {
+            if (!dialogue) return null;
+            const { displayedText, isTyping } = useTypewriter(dialogue.text);
+            const isLeft = dialogue.speaker === 'AOI' || dialogue.speaker === 'SYSTEM';
+            const getSpeakerName = (s) => (s==='AOI'?'御符師 遠野 葵':s==='REN'?'判讀士 神崎 蓮':s==='SYSTEM'?'系統終端':'夜叉面 (逢魔之影)');
+            const getStyle = (s) => (s==='AOI'?'border-indigo-500 bg-indigo-950/90 text-indigo-100':s==='REN'?'border-emerald-500 bg-emerald-950/90 text-emerald-100':s==='SYSTEM'?'border-red-500 bg-red-950/90 text-red-100 font-mono':'border-purple-600 bg-gray-900/95 text-purple-200 font-serif');
+            return (
+                <div className="fixed bottom-0 left-0 w-full z-[100] p-4 pb-8 md:p-8 flex flex-col items-center animate-slideUp">
+                    <div className={`w-full max-w-4xl flex items-end gap-4 ${isLeft ? 'flex-row' : 'flex-row-reverse'}`}>
+                        <div className="mb-2"><Avatar char={dialogue.speaker} floating={true} /></div>
+                        <div className={`flex-1 relative p-6 rounded-xl border-2 shadow-2xl backdrop-blur-sm ${getStyle(dialogue.speaker)}`}>
+                            <div className="absolute -top-4 left-6 px-4 py-1 bg-black border border-current rounded-full text-xs font-bold tracking-widest uppercase shadow-md">{getSpeakerName(dialogue.speaker)}</div>
+                            <p className="text-lg md:text-xl leading-relaxed min-h-[3rem]">{displayedText}{isTyping && <span className="inline-block w-2 h-5 bg-current ml-1 animate-pulse"/>}</p>
+                            <div className="absolute bottom-4 right-4 animate-bounce cursor-pointer" onClick={() => { SoundManager.playSFX('click'); onNext(); }}><ChevronDown size={24} /></div>
+                            <button className="absolute inset-0 w-full h-full cursor-pointer z-10 opacity-0" onClick={() => { SoundManager.playSFX('click'); onNext(); }}></button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ObjectiveBar = ({ stage, corruption }) => {
+            const getObjective = () => { switch(stage) { case STAGES.INTRO: return "啟動午夜禁錮儀式"; case STAGES.PHASE1: return "階段一：解除陰陽封印 (尋找相生元素)"; case STAGES.PHASE2: return "階段二：靈力同調 (完成四大試煉)"; case STAGES.PHASE3: return "階段三：方位序列 (按順序啟動羅盤)"; case STAGES.FINALE_CHOICE: return "最終階段：抉擇儀式路徑"; case STAGES.FINALE_CODE: return "最終階段：輸入鎮魂真名"; default: return "未知目標"; }};
+            return (
+                <div className="fixed top-16 left-0 w-full bg-black/60 backdrop-blur-md border-b border-stone-800 z-30 px-4 py-2 flex items-center justify-between shadow-md">
+                    <div className="flex items-center gap-2 text-stone-200 font-bold text-sm md:text-base animate-pulse-slow"><MapPin size={16} className="text-amber-500" /><span>當前目標：{getObjective()}</span></div>
+                    <div className="flex items-center gap-2 text-xs font-mono"><span className={`${corruption > 50 ? 'text-purple-400' : 'text-stone-500'}`}>心智侵蝕: {corruption}%</span>{corruption > 70 && <AlertTriangle size={14} className="text-purple-500 animate-bounce" />}</div>
+                </div>
+            );
+        };
+
+        // --- Games ---
+        const SyncGame = ({ status, onWin, onLose }) => {
+            const [position, setPosition] = useState(0); const [direction, setDirection] = useState(1); const targetZone = 50; const requestRef = useRef();
+            useEffect(() => { if (status !== 'playing') return; const animate = () => { setPosition(p => { let n = p + (direction * 1.5); if (n >= 100) { n = 100; setDirection(-1); } else if (n <= 0) { n = 0; setDirection(1); } return n; }); requestRef.current = requestAnimationFrame(animate); }; requestRef.current = requestAnimationFrame(animate); return () => cancelAnimationFrame(requestRef.current); }, [direction, status]);
+            const handleStop = () => { cancelAnimationFrame(requestRef.current); if (Math.abs(position - targetZone) <= 12) onWin(); else onLose(); };
+            return ( <div className="text-center w-full"><h3 className="text-indigo-400 font-bold mb-2 flex items-center justify-center gap-2"><Activity size={20}/> 靈力同調 (Sync)</h3><div className="h-10 bg-stone-800 rounded-full relative overflow-hidden mb-8 border-2 border-stone-600 w-64 mx-auto shadow-inner"><div className="absolute top-0 bottom-0 bg-yellow-500/60 border-l-2 border-r-2 border-yellow-300 shadow-[0_0_15px_rgba(234,179,8,0.5)]" style={{ left: `${targetZone - 12}%`, width: '24%' }}></div><div className="absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_15px_white] z-10" style={{ left: `${position}%` }}></div></div><button onClick={() => { SoundManager.playSFX('click'); handleStop(); }} disabled={status !== 'playing'} className="btn-primary w-full max-w-[200px]">鎖定</button></div> );
+        };
+
+        const MashGame = ({ status, onWin }) => {
+            const [progress, setProgress] = useState(0);
+            useEffect(() => { if (status === 'playing') setProgress(0); }, [status]);
+            useEffect(() => { if (status !== 'playing') return; const timer = setInterval(() => setProgress(p => Math.max(0, p - 0.5)), 50); return () => clearInterval(timer); }, [status]);
+            useEffect(() => { if (progress >= 100 && status === 'playing') onWin(); }, [progress, status, onWin]);
+            return ( <div className="text-center w-full"><h3 className="text-indigo-400 font-bold mb-2 flex items-center justify-center gap-2"><MousePointerClick size={20}/> 靈氣注入 (Charge)</h3><div className="w-full max-w-[200px] h-6 bg-stone-800 rounded-full border-2 border-stone-600 mb-8 overflow-hidden relative mx-auto shadow-inner"><div className="h-full bg-gradient-to-r from-blue-600 via-cyan-400 to-white transition-all duration-75 box-glow" style={{ width: `${progress}%` }}></div></div><button onMouseDown={() => { if(status==='playing'){ SoundManager.playSFX('click'); setProgress(p => Math.min(100, p + 12)); }}} onTouchStart={(e) => { e.preventDefault(); if(status==='playing'){ SoundManager.playSFX('click'); setProgress(p => Math.min(100, p + 12)); }}} className="w-24 h-24 rounded-full bg-gradient-to-br from-red-600 to-red-800 border-4 border-red-900 text-white font-bold shadow-xl active:scale-95 mx-auto flex items-center justify-center text-xl transition-all select-none ripple-effect">點擊!</button></div> );
+        };
+
+        const ConnectPairsGame = ({ status, onWin }) => {
+            const [selection, setSelection] = useState(null); const [connections, setConnections] = useState([]); const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 }); const boardRef = useRef(null);
+            const leftItems = useMemo(() => [{ id: 'red', color: 'bg-red-500', icon: '🔥' }, { id: 'blue', color: 'bg-blue-500', icon: '💧' }, { id: 'green', color: 'bg-emerald-500', icon: '🌲' }], []);
+            const rightItems = useMemo(() => [{ id: 'green', color: 'bg-emerald-500', icon: '🌲' }, { id: 'red', color: 'bg-red-500', icon: '🔥' }, { id: 'blue', color: 'bg-blue-500', icon: '💧' }], []);
+            const updateCursorPos = (cx, cy) => { if (boardRef.current) { const rect = boardRef.current.getBoundingClientRect(); setCursorPos({ x: cx - rect.left, y: cy - rect.top }); }};
+            const handleMove = (e) => { if (status !== 'playing' || !selection) return; const c = e.touches ? e.touches[0] : e; updateCursorPos(c.clientX, c.clientY); };
+            const handleClick = (id, side, e) => { if (status !== 'playing') return; SoundManager.playSFX('click'); const isDone = connections.some(c => (side === 'left' ? c.left === id : c.right === id)); if (isDone) return; const c = e.touches ? e.touches[0] : e; updateCursorPos(c.clientX, c.clientY); if (!selection || selection.side === side) { setSelection({ id, side }); return; } if (selection.id === id) { const newC = [...connections, { left: id, right: id }]; setConnections(newC); setSelection(null); if (newC.length === leftItems.length) { onWin(); } else { SoundManager.playSFX('success'); } } else { setSelection(null); SoundManager.playSFX('error'); }};
+            const getCoords = (side, id) => { const idx = side === 'left' ? leftItems.findIndex(i => i.id === id) : rightItems.findIndex(i => i.id === id); return { x: side === 'left' ? '10%' : '90%', y: (idx * 33) + 16 + '%' }; };
+            return ( <div className="text-center w-full" onMouseMove={handleMove} onTouchMove={handleMove} ref={boardRef}><h3 className="text-indigo-400 font-bold mb-2 flex items-center justify-center gap-2"><Link2 size={20}/> 靈脈連結 (Connect)</h3><div className="relative h-64 w-full max-w-[280px] mx-auto select-none touch-none bg-stone-900/50 rounded-lg border border-stone-800"><svg className="absolute inset-0 w-full h-full pointer-events-none z-0">{connections.map((c, i) => { const s = getCoords('left', c.left); const e = getCoords('right', c.right); return ( <line key={i} x1={s.x} y1={s.y} x2={e.x} y2={e.y} stroke="white" strokeWidth="3" strokeDasharray="4" className="opacity-70"/>) })}{selection && (<line x1={getCoords(selection.side, selection.id).x} y1={getCoords(selection.side, selection.id).y} x2={cursorPos.x} y2={cursorPos.y} stroke="#fbbf24" strokeWidth="3" strokeLinecap="round" className="opacity-80 animate-pulse"/>)}</svg><div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between py-4 h-full w-[20%] items-center z-10">{leftItems.map(p => (<button key={`L-${p.id}`} onClick={(e) => handleClick(p.id, 'left', e)} className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all ${connections.some(c=>c.left===p.id)?'opacity-30 border-stone-600 scale-90':selection?.side==='left'&&selection?.id===p.id?'border-amber-400 scale-110 shadow-[0_0_15px_#fbbf24] z-20':'border-stone-500 hover:border-indigo-400'} ${p.color}`}>{p.icon}</button>))}</div><div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between py-4 h-full w-[20%] items-center z-10">{rightItems.map(p => (<button key={`R-${p.id}`} onClick={(e) => handleClick(p.id, 'right', e)} className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all ${connections.some(c=>c.right===p.id)?'opacity-30 border-stone-600 scale-90':selection?.side==='right'&&selection?.id===p.id?'border-amber-400 scale-110 shadow-[0_0_15px_#fbbf24] z-20':'border-stone-500 hover:border-indigo-400'} ${p.color}`}>{p.icon}</button>))}</div></div></div> );
+        };
+
+        const MemoryGame = ({ status, onWin, onLose }) => {
+            const [seq, setSeq] = useState([]); const [step, setStep] = useState(0); const [showIdx, setShowIdx] = useState(null); const [state, setState] = useState('idle'); const [flash, setFlash] = useState(null);
+            const btns = [{id:0,c:'bg-red-600',a:'bg-red-400'},{id:1,c:'bg-blue-600',a:'bg-blue-400'},{id:2,c:'bg-green-600',a:'bg-green-400'},{id:3,c:'bg-yellow-600',a:'bg-yellow-400'}];
+            useEffect(() => { if (status === 'playing' && state === 'idle') { setSeq(Array.from({length: 4}, () => Math.floor(Math.random() * 4))); setState('playing_seq'); setShowIdx(0); } }, [status, state]);
+            useEffect(() => { if (state === 'playing_seq' && showIdx !== null) { if (showIdx >= seq.length) { setState('turn'); setShowIdx(null); return; } const id = seq[showIdx]; setFlash(id); SoundManager.playSFX('hover'); const t1 = setTimeout(() => { setFlash(null); const t2 = setTimeout(() => setShowIdx(p=>p+1), 300); return () => clearTimeout(t2); }, 600); return () => clearTimeout(t1); } }, [state, showIdx, seq]);
+            const click = (id) => { if (state !== 'turn') return; setFlash(id); SoundManager.playSFX('click'); setTimeout(()=>setFlash(null), 200); if (id === seq[step]) { if (step === seq.length - 1) onWin(); else setStep(p=>p+1); } else onLose(); };
+            return ( <div className="text-center w-full"><h3 className="text-indigo-400 font-bold mb-4 flex items-center justify-center gap-2"><Brain size={20}/> 符文記憶 (Memory)</h3><div className="text-xs text-stone-500 mb-4 h-4">{state === 'playing_seq' ? '觀察順序...' : '重複順序'}</div><div className="grid grid-cols-2 gap-4 max-w-[200px] mx-auto">{btns.map(b => (<button key={b.id} onClick={() => click(b.id)} className={`w-20 h-20 rounded-xl transition-all duration-100 ${flash === b.id ? b.a + ' scale-105 shadow-[0_0_20px_white]' : b.c} border-b-4 border-black/30 active:border-b-0 active:translate-y-1`}/>))}</div></div> );
+        };
+
+        const RotaryGame = ({ status, onWin }) => {
+            const [angle, setAngle] = useState(0); const [target, setTarget] = useState(0);
+            useEffect(() => { if (status === 'playing') { setTarget(Math.floor(Math.random() * 260) + 50); setAngle(Math.random() * 360); } }, [status]);
+            const rotate = (a) => { if (status !== 'playing') return; SoundManager.playSFX('hover'); setAngle(p => (p + a + 360) % 360); };
+            const check = () => { if (Math.abs(angle - target) < 15) onWin(); else SoundManager.playSFX('error'); };
+            return ( <div className="text-center w-full"><h3 className="text-indigo-400 font-bold mb-2 flex items-center justify-center gap-2"><RefreshCcw size={20}/> 輪盤解鎖 (Rotary)</h3><div className="relative w-48 h-48 mx-auto mb-6"><div className="absolute inset-0 rounded-full border-4 border-stone-800"></div><div className="absolute w-full h-full rounded-full" style={{ background: `conic-gradient(transparent 0deg, transparent ${target-15}deg, rgba(251, 191, 36, 0.5) ${target}deg, transparent ${target+15}deg)`, transform: 'rotate(0deg)' }}></div><div className="absolute inset-2 bg-stone-900 rounded-full border-2 border-indigo-500/50 flex items-start justify-center transition-transform duration-200" style={{ transform: `rotate(${angle}deg)` }}><div className="w-2 h-6 bg-indigo-500 rounded-full mt-2 shadow-[0_0_10px_#6366f1]"></div><div className="absolute inset-0 flex items-center justify-center"><div className="w-16 h-16 rounded-full bg-stone-800 border-2 border-stone-600 flex items-center justify-center"><Lock size={20} className="text-stone-500"/></div></div></div></div><div className="flex justify-center gap-4"><button onClick={() => rotate(-15)} className="btn-secondary rounded-full w-12 h-12 flex items-center justify-center"><RotateCcw size={16}/></button><button onClick={check} className="btn-primary w-24">解開</button><button onClick={() => rotate(15)} className="btn-secondary rounded-full w-12 h-12 flex items-center justify-center"><RefreshCcw size={16}/></button></div></div> );
+        };
+
+        const BalanceGame = ({ status, onWin, onLose }) => {
+            const [pos, setPos] = useState(50); const [target, setTarget] = useState(50); const [stable, setStable] = useState(0); const [drift, setDrift] = useState(0);
+            useEffect(() => { if (status !== 'playing') return; const di = setInterval(() => setDrift(Math.random() * 2 - 1), 1000); const gl = setInterval(() => { setPos(p => { const np = p + drift; if (np < 0 || np > 100) { onLose(); return np < 0 ? 0 : 100; } return np; }); setTarget(50 + Math.sin(Date.now() / 800) * 30); setPos(cp => { if (cp > target - 10 && cp < target + 10) setStable(t => t + 2); else setStable(t => Math.max(0, t - 1)); return cp; }); }, 50); return () => { clearInterval(di); clearInterval(gl); }; }, [status, drift, onLose, target]);
+            useEffect(() => { if (stable >= 100) onWin(); }, [stable, onWin]);
+            const nudge = (a) => { if (status !== 'playing') return; SoundManager.playSFX('hover'); setPos(p => p + a); };
+            return ( <div className="text-center w-full"><h3 className="text-indigo-400 font-bold mb-2 flex items-center justify-center gap-2"><Minimize2 size={20}/> 靈力平衡 (Balance)</h3><div className="w-64 h-2 bg-stone-800 rounded-full mx-auto mb-6 overflow-hidden"><div className="h-full bg-green-500 transition-all duration-100" style={{ width: `${stable}%` }}></div></div><div className="relative w-64 h-12 bg-stone-800 border-2 border-stone-600 rounded-lg mx-auto mb-6 overflow-hidden"><div className="absolute h-full bg-green-900/30 border-l border-r border-green-500/50 transition-all duration-75 ease-linear" style={{ width: '20%', left: `${target - 10}%` }}></div><div className="absolute top-1 w-2 h-9 bg-white shadow-[0_0_10px_white] rounded-full transition-all duration-75" style={{ left: `${pos}%` }}></div></div><div className="flex justify-center gap-8"><button onMouseDown={() => nudge(-8)} className="w-16 h-16 bg-stone-700 rounded-full shadow-lg active:scale-95 flex items-center justify-center text-2xl">←</button><button onMouseDown={() => nudge(8)} className="w-16 h-16 bg-stone-700 rounded-full shadow-lg active:scale-95 flex items-center justify-center text-2xl">→</button></div></div> );
+        };
+
+        const GlyphGame = ({ status, onWin, onLose }) => {
+            const [tid, setTid] = useState(0);
+            useEffect(() => { if (status === 'playing') setTid(Math.floor(Math.random() * 9)); }, [status]);
+            const click = (i) => { if (status !== 'playing') return; SoundManager.playSFX('click'); if (i === tid) onWin(); else onLose(); };
+            return ( <div className="text-center w-full"><h3 className="text-indigo-400 font-bold mb-2 flex items-center justify-center gap-2"><Grid size={20}/> 慧眼識符 (Find)</h3><p className="text-xs text-stone-500 mb-4">找出與眾不同的符文</p><div className="grid grid-cols-3 gap-3 max-w-[240px] mx-auto">{Array(9).fill(null).map((_, i) => (<button key={i} onClick={() => click(i)} className="w-16 h-16 bg-stone-800 border border-stone-600 rounded flex items-center justify-center text-2xl font-serif hover:bg-stone-700 active:bg-stone-600 transition-colors">{i === tid ? '〓' : '〒'}</button>))}</div></div> );
+        };
+
+        const GhostGame = ({ status, onWin }) => {
+            const [ghosts, setGhosts] = useState([]); const [spawned, setSpawned] = useState(false); const ref = useRef(null);
+            useEffect(() => { if (status === 'playing' && !spawned) { setGhosts(Array.from({ length: 5 }, (_, i) => ({ id: i, x: Math.random() * 80 + 10, y: Math.random() * 80 + 10, vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5 }))); setSpawned(true); } }, [status, spawned]);
+            useEffect(() => { if (status !== 'playing') return; const loop = () => { setGhosts(prev => prev.map(g => { let nx = g.x + g.vx; let ny = g.y + g.vy; let nvx = g.vx; let nvy = g.vy; if (nx <= 5 || nx >= 95) nvx *= -1; if (ny <= 5 || ny >= 95) nvy *= -1; return { ...g, x: nx, y: ny, vx: nvx, vy: nvy }; })); requestAnimationFrame(loop); }; requestAnimationFrame(loop); }, [status]);
+            useEffect(() => { if (status === 'playing' && spawned && ghosts.length === 0) onWin(); }, [ghosts, status, onWin, spawned]);
+            const hit = (id) => { SoundManager.playSFX('shoot'); setGhosts(p => p.filter(g => g.id !== id)); };
+            return ( <div className="text-center w-full h-full" ref={ref}><h3 className="text-indigo-400 font-bold mb-2 flex items-center justify-center gap-2"><Ghost size={20}/> 惡靈退散 (Exorcism)</h3><p className="text-xs text-stone-500 mb-4">點擊移動的鬼魂 ({ghosts.length}/5)</p><div className="relative w-64 h-64 mx-auto bg-stone-900 border border-stone-700 rounded-lg overflow-hidden cursor-crosshair">{ghosts.map(g => (<div key={g.id} onMouseDown={() => hit(g.id)} className="absolute w-8 h-8 flex items-center justify-center animate-pulse cursor-pointer hover:scale-125 transition-transform" style={{ left: `${g.x}%`, top: `${g.y}%`, transform: 'translate(-50%, -50%)' }}><Ghost size={24} className="text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]" /></div>))}</div></div> );
+        };
+
+        const TianganGame = ({ status, onWin, onLose }) => {
+            const [target, setTarget] = useState([]); const [input, setInput] = useState([]);
+            useEffect(() => { if (status === 'playing') { setTarget(Array.from({length: 4}, () => TIANGAN[Math.floor(Math.random() * 10)])); setInput([]); } }, [status]);
+            const handle = (c) => { if (input.length >= 4) return; SoundManager.playSFX('click'); const n = [...input, c]; setInput(n); if (n.length === 4) { if (n.join('') === target.join('')) onWin(); else { SoundManager.playSFX('error'); setTimeout(() => setInput([]), 500); } } };
+            return ( <div className="text-center w-full"><h3 className="text-indigo-400 font-bold mb-2 flex items-center justify-center gap-2"><Lock size={20}/> 天干解鎖 (Cipher)</h3><div className="mb-4 bg-black/40 p-2 rounded border border-stone-800"><span className="text-xs text-stone-500 block mb-1">目標序列</span><div className="flex justify-center gap-2 text-xl font-serif text-amber-500 tracking-widest">{target.map((c, i) => <span key={i}>{c}</span>)}</div></div><div className="flex justify-center gap-2 mb-6 h-10">{Array(4).fill(null).map((_, i) => (<div key={i} className="w-10 h-10 border-b-2 border-stone-600 flex items-center justify-center text-xl text-white">{input[i] || ''}</div>))}</div><div className="grid grid-cols-5 gap-2 max-w-[280px] mx-auto">{TIANGAN.map(c => (<button key={c} onClick={() => handle(c)} className="w-10 h-10 bg-stone-800 rounded border border-stone-600 text-stone-300 hover:bg-stone-700 hover:text-white transition-colors">{c}</button>))}<button onClick={() => setInput([])} className="col-span-5 mt-2 text-xs text-red-400 flex items-center justify-center gap-1"><RefreshCcw size={12}/> 清除</button></div></div> );
+        };
+
+        const CleanGame = ({ status, onWin }) => {
+            const [stains, setStains] = useState([]); const [spawned, setSpawned] = useState(false);
+            useEffect(() => { if (status === 'playing' && !spawned) { setStains(Array.from({ length: 8 }, (_, i) => ({ id: i, x: Math.random() * 80 + 10, y: Math.random() * 80 + 10, s: Math.random() * 0.5 + 0.8, r: Math.random() * 360 }))); setSpawned(true); } }, [status, spawned]);
+            useEffect(() => { if (status === 'playing' && spawned && stains.length === 0) onWin(); }, [stains, status, onWin, spawned]);
+            const clean = (id) => { SoundManager.playSFX('hover'); setStains(p => p.filter(s => s.id !== id)); };
+            return ( <div className="text-center w-full"><h3 className="text-indigo-400 font-bold mb-2 flex items-center justify-center gap-2"><Sparkles size={20}/> 淨化儀式 (Purify)</h3><div className="relative w-64 h-64 mx-auto bg-stone-300 rounded-lg overflow-hidden shadow-inner flex items-center justify-center"><div className="text-6xl text-indigo-900 font-bold opacity-50 select-none pointer-events-none">淨</div>{stains.map(s => (<div key={s.id} onMouseDown={() => clean(s.id)} className="absolute w-16 h-16 bg-black rounded-full blur-md cursor-pointer hover:opacity-80 transition-opacity" style={{ left: `${s.x}%`, top: `${s.y}%`, transform: `translate(-50%, -50%) rotate(${s.r}deg) scale(${s.s})`, opacity: 0.9 }}></div>))}</div></div> );
+        };
+
+        const ShooterGame = ({ status, onWin, onLose }) => {
+            const [px, setPx] = useState(50);
+            const [sc, setSc] = useState(0);
+            const [isShake, setIsShake] = useState(false);
+            
+            // Using Refs to manage game loop state synchronously
+            const projRef = useRef([]);
+            const enRef = useRef([]);
+            const gameRef = useRef(null);
+            const lastSpawnRef = useRef(0);
+            const lastShotRef = useRef(0);
+            const scoreRef = useRef(0);
+            
+            // Game Settings
+            const ENEMY_SPEED = 0.5;
+            const SPAWN_RATE = 1500;
+            const WIN_SCORE = 1000;
+            const HIT_SCORE = 100;
+            const PENALTY_SCORE = 300;
+
+            useEffect(() => {
+                if (status === 'playing') {
+                    setPx(50);
+                    setSc(0);
+                    projRef.current = [];
+                    enRef.current = [];
+                    scoreRef.current = 0;
+                    lastSpawnRef.current = 0;
+                    lastShotRef.current = 0;
+                }
+            }, [status]);
+
+            // Player Movement
+            const move = (e) => {
+                if (status !== 'playing' || !gameRef.current) return;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const rect = gameRef.current.getBoundingClientRect();
+                const x = ((clientX - rect.left) / rect.width) * 100;
+                setPx(Math.max(5, Math.min(95, x)));
+            };
+
+            // Shooting
+            const shoot = (e) => {
+                if (e.cancelable) e.preventDefault();
+                if (status !== 'playing') return;
+                
+                const now = Date.now();
+                if (now - lastShotRef.current < 200) return;
+
+                SoundManager.playSFX('shoot');
+                projRef.current.push({ id: Math.random(), x: px, y: 90 });
+                lastShotRef.current = now;
+            };
+
+            // Main Game Loop (Fixed Time Step)
+            useEffect(() => {
+                if (status !== 'playing') return;
+
+                const loop = setInterval(() => {
+                    const now = Date.now();
+
+                    // 1. Spawn Enemies
+                    if (now - lastSpawnRef.current > SPAWN_RATE) {
+                        enRef.current.push({ id: Math.random(), x: Math.random() * 90 + 5, y: -10 });
+                        lastSpawnRef.current = now;
+                    }
+
+                    // 2. Move Projectiles
+                    projRef.current = projRef.current
+                        .map(p => ({ ...p, y: p.y - 2 }))
+                        .filter(p => p.y > -10);
+
+                    // 3. Move Enemies
+                    enRef.current = enRef.current
+                        .map(e => ({ ...e, y: e.y + ENEMY_SPEED }))
+                        .filter(e => e.y < 110);
+
+                    // 4. Collision Detection
+                    let hitScore = 0;
+                    let hitPlayer = false;
+
+                    // Projectile vs Enemy
+                    for (let i = enRef.current.length - 1; i >= 0; i--) {
+                        let enemyHit = false;
+                        for (let j = projRef.current.length - 1; j >= 0; j--) {
+                            const dx = Math.abs(enRef.current[i].x - projRef.current[j].x);
+                            const dy = Math.abs(enRef.current[i].y - projRef.current[j].y);
+                            if (dx < 6 && dy < 6) {
+                                enemyHit = true;
+                                projRef.current.splice(j, 1); // Remove projectile
+                                break;
+                            }
+                        }
+                        if (enemyHit) {
+                            enRef.current.splice(i, 1); // Remove enemy
+                            hitScore += HIT_SCORE;
+                        }
+                    }
+
+                    // Enemy vs Player
+                    for (let i = enRef.current.length - 1; i >= 0; i--) {
+                        const dx = Math.abs(enRef.current[i].x - px);
+                        const dy = Math.abs(enRef.current[i].y - 90);
+                        if (dx < 8 && dy < 8) {
+                            hitPlayer = true;
+                            enRef.current.splice(i, 1); // Remove enemy
+                        }
+                    }
+
+                    // 5. Update State / Score
+                    if (hitScore > 0) {
+                        SoundManager.playSFX('success');
+                        scoreRef.current += hitScore;
+                        setSc(scoreRef.current);
+                        if (scoreRef.current >= WIN_SCORE) {
+                            setTimeout(onWin, 100);
+                            clearInterval(loop);
+                        }
+                    }
+
+                    if (hitPlayer) {
+                        SoundManager.playSFX('error');
+                        scoreRef.current = Math.max(0, scoreRef.current - PENALTY_SCORE);
+                        setSc(scoreRef.current);
+                        setIsShake(true);
+                        setTimeout(() => setIsShake(false), 200);
+                    }
+
+                    // Force Update for Rendering
+                    setSc(s => s); 
+
+                }, 20); 
+
+                return () => clearInterval(loop);
+            }, [status, px, onWin]);
+
+            return (
+                <div 
+                    className={`text-center w-full h-80 bg-black relative overflow-hidden cursor-none touch-none select-none rounded border-2 ${isShake ? 'border-red-500 animate-shake' : 'border-indigo-900'}`} 
+                    ref={gameRef} 
+                    onMouseMove={move} 
+                    onTouchMove={move}
+                    onPointerDown={shoot}
+                >
+                    <div className="absolute top-2 left-2 text-white font-mono text-sm z-20">SCORE: {sc}/{WIN_SCORE}</div>
+                    <div className="absolute bottom-4 text-indigo-400 transform -translate-x-1/2 transition-transform duration-75" style={{ left: `${px}%` }}><Rocket size={32} /></div>
+                    
+                    {projRef.current.map(p => (
+                        <div key={p.id} className="absolute w-1 h-3 bg-yellow-400 rounded-full shadow-[0_0_5px_yellow]" style={{ left: `${p.x}%`, top: `${p.y}%` }}></div>
+                    ))}
+                    
+                    {enRef.current.map(e => (
+                        <div key={e.id} className="absolute text-red-500 transform -translate-x-1/2 -translate-y-1/2" style={{ left: `${e.x}%`, top: `${e.y}%` }}><Ghost size={24} /></div>
+                    ))}
+
+                    <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none opacity-50 text-xs text-stone-500">點擊畫面射擊 / 被撞扣分</div>
+                </div>
+            );
+        };
+
+        const MemoryFlipGame = ({ status, onWin }) => {
+            const [cards, setCards] = useState([]); const [flipped, setFlipped] = useState([]); const [solved, setSolved] = useState([]); const ICONS = ['🌙', '⭐', '🔥', '💧', '⚡', '👁️'];
+            useEffect(() => { if (status === 'playing') { setCards([...ICONS, ...ICONS].sort(() => Math.random() - 0.5).map((icon, id) => ({ id, icon }))); setFlipped([]); setSolved([]); } }, [status]);
+            const click = (id) => { if (flipped.length === 2 || flipped.includes(id) || solved.includes(id)) return; SoundManager.playSFX('click'); const nf = [...flipped, id]; setFlipped(nf); if (nf.length === 2) { const i1 = nf[0]; const i2 = nf[1]; if (cards[i1].icon === cards[i2].icon) { setSolved([...solved, i1, i2]); setFlipped([]); SoundManager.playSFX('success'); if (solved.length + 2 === cards.length) onWin(); } else setTimeout(() => setFlipped([]), 800); } };
+            return ( <div className="text-center w-full"><h3 className="text-indigo-400 font-bold mb-4 flex items-center justify-center gap-2"><Copy size={20}/> 記憶翻牌 (Memory)</h3><div className="grid grid-cols-4 gap-2 w-64 mx-auto">{cards.map((c, i) => { const f = flipped.includes(i) || solved.includes(i); return ( <div key={i} className="aspect-square relative perspective-1000" onClick={() => click(i)}><div className={`w-full h-full relative transform-style-3d transition-all duration-500 ${f ? 'rotate-y-180' : ''}`}><div className="absolute inset-0 bg-stone-700 border-2 border-stone-500 rounded flex items-center justify-center backface-hidden hover:bg-stone-600 cursor-pointer"><span className="text-stone-500 font-bold">?</span></div><div className="absolute inset-0 bg-indigo-900 border-2 border-indigo-400 rounded flex items-center justify-center rotate-y-180 backface-hidden"><span className="text-2xl">{c.icon}</span></div></div></div> ) })}</div></div> );
+        };
+
+        const MazeGame = ({ status, onWin }) => {
+            const [pl, setPl] = useState({ x: 0, y: 0 }); const [map, setMap] = useState([]);
+            const gen = (s) => { const m = Array(s).fill().map(() => Array(s).fill(1)); const stack = [{x:0,y:0}]; m[0][0] = 0; while(stack.length) { const c = stack[stack.length-1]; const n = [{x:c.x+2,y:c.y},{x:c.x-2,y:c.y},{x:c.x,y:c.y+2},{x:c.x,y:c.y-2}].filter(k => k.x>=0 && k.x<s && k.y>=0 && k.y<s && m[k.y][k.x]===1); if(n.length) { const next = n[Math.floor(Math.random()*n.length)]; m[(c.y+next.y)/2][(c.x+next.x)/2] = 0; m[next.y][next.x] = 0; stack.push(next); } else stack.pop(); } m[0][0]=2; if(m[s-1][s-1]===1) m[s-1][s-1]=0; m[s-1][s-1]=3; if(m[s-2][s-1]===1) m[s-2][s-1]=0; return m; };
+            useEffect(() => { if (status === 'playing') { setPl({x:0,y:0}); setMap(gen(10)); } }, [status]);
+            const move = (dx, dy) => { if (!map.length) return; const nx = pl.x + dx; const ny = pl.y + dy; if (nx >= 0 && nx < 10 && ny >= 0 && ny < 10 && map[ny][nx] !== 1) { setPl({ x: nx, y: ny }); if (map[ny][nx] === 3) onWin(); else SoundManager.playSFX('hover'); } };
+            return ( <div className="text-center w-full"><h3 className="text-indigo-400 font-bold mb-2 flex items-center justify-center gap-2"><Navigation size={20}/> 迷宮 (Maze)</h3><div className="grid grid-cols-10 gap-px w-80 h-80 mx-auto bg-stone-900 p-2 mb-4 rounded border border-stone-700">{map.length > 0 && map.map((row, y) => row.map((cell, x) => { const isp = pl.x === x && pl.y === y; let bg = 'bg-stone-800'; if (cell === 1) bg = 'bg-stone-600'; if (cell === 3) bg = 'bg-green-900 border border-green-500'; if (isp) bg = 'bg-indigo-500 shadow-[0_0_10px_#6366f1] z-10 scale-125 rounded-full'; return ( <div key={`${x}-${y}`} className={`w-full h-full rounded-sm ${bg} transition-all duration-100 flex items-center justify-center`}>{cell === 2 && !isp && <div className="w-2 h-2 bg-blue-500 rounded-full opacity-50"></div>}</div> ) }))}</div><div className="grid grid-cols-3 gap-2 w-32 mx-auto"><div></div><button onClick={() => move(0, -1)} className="btn-secondary p-2 active:bg-stone-600"><ChevronUp size={24}/></button><div></div><button onClick={() => move(-1, 0)} className="btn-secondary p-2 active:bg-stone-600"><ChevronDown size={24} className="rotate-90"/></button><button onClick={() => move(0, 1)} className="btn-secondary p-2 active:bg-stone-600"><ChevronDown size={24}/></button><button onClick={() => move(1, 0)} className="btn-secondary p-2 active:bg-stone-600"><ChevronUp size={24} className="rotate-90"/></button></div></div> );
+        };
+
+        const ArcheryGame = ({ status, onWin }) => {
+            const [ty, setTy] = useState(50); const [arr, setArr] = useState({ x: 0, f: false }); const [hit, setHit] = useState(false); const ref = useRef();
+            useEffect(() => { if (status !== 'playing') return; const a = () => { const t = Date.now(); setTy(50 + Math.sin(t / 400) * 40); setArr(p => { if (!p.f) return p; const nx = p.x + 5; if (nx >= 80 && nx <= 90 && !hit) { if (Math.abs(50 + Math.sin(t / 400) * 40 - 50) < 15) { setHit(true); SoundManager.playSFX('success'); setTimeout(onWin, 500); } } if (nx > 100) return { x: 0, f: false }; return { ...p, x: nx }; }); ref.current = requestAnimationFrame(a); }; ref.current = requestAnimationFrame(a); return () => cancelAnimationFrame(ref.current); }, [status, hit, onWin]);
+            const shoot = () => { if (!arr.f) { SoundManager.playSFX('shoot'); setArr({ x: 0, f: true }); } };
+            return ( <div className="text-center w-full relative h-64 bg-stone-900 rounded-xl overflow-hidden border border-stone-700" onMouseDown={shoot} onTouchStart={shoot}><h3 className="absolute top-2 left-0 right-0 text-indigo-400 font-bold flex items-center justify-center gap-2 pointer-events-none"><Target size={20}/> 射箭 (Focus)</h3><p className="absolute bottom-2 left-0 right-0 text-stone-500 text-xs pointer-events-none">點擊發射 (瞄準中心)</p><div className={`absolute right-4 w-4 h-16 rounded-full transition-colors ${hit ? 'bg-green-500' : 'bg-red-500'}`} style={{ top: `${ty}%`, transform: 'translateY(-50%)' }}><div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full border-2 border-white/50"></div></div><div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300">🏹</div>{arr.f && (<div className="absolute top-1/2 -translate-y-1/2 h-1 bg-white shadow-[0_0_5px_white]" style={{ left: `${arr.x}%`, width: '20px' }}></div>)}</div> );
+        };
+
+        const UnlockMinigame = ({ gameType, onComplete, onClose, onFail }) => {
+            const [status, setStatus] = useState('playing'); const [key, setKey] = useState(0); const [time, setTime] = useState(10);
+            const unlimited = ['shooter', 'flip', 'maze', 'archery'].includes(gameType);
+            useEffect(() => { if (status !== 'playing' || unlimited) return; if (time <= 0) { setStatus('lost'); SoundManager.playSFX('error'); if(onFail) onFail(); setTimeout(onClose, 2000); return; } const t = setInterval(() => setTime(p => p - 1), 1000); return () => clearInterval(t); }, [time, status, unlimited]);
+            const win = () => { setStatus('won'); SoundManager.playSFX('unlock'); setTimeout(() => onComplete(true), 1000); };
+            const lose = () => { setStatus('lost'); SoundManager.playSFX('error'); if(onFail) onFail(); setTimeout(onClose, 2000); };
+            const render = () => {
+                const props = { key, status, onWin: win, onLose: lose };
+                if(gameType==='sync') return <SyncGame {...props}/>; if(gameType==='mash') return <MashGame {...props}/>; if(gameType==='align') return <ConnectPairsGame {...props}/>; if(gameType==='memory') return <MemoryGame {...props}/>;
+                if(gameType==='rotary') return <RotaryGame {...props}/>; if(gameType==='balance') return <BalanceGame {...props}/>; if(gameType==='glyph') return <GlyphGame {...props}/>; if(gameType==='ghost') return <GhostGame {...props}/>;
+                if(gameType==='tiangan') return <TianganGame {...props}/>; if(gameType==='clean') return <CleanGame {...props}/>; if(gameType==='shooter') return <ShooterGame {...props}/>; if(gameType==='flip') return <MemoryFlipGame {...props}/>;
+                if(gameType==='maze') return <MazeGame {...props}/>; if(gameType==='archery') return <ArcheryGame {...props}/>;
+                return <SyncGame {...props}/>;
+            };
+            return ( <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm"><div className="bg-stone-900 border-2 border-indigo-500 p-6 rounded-xl w-full max-w-sm shadow-[0_0_50px_rgba(99,102,241,0.4)] relative overflow-hidden min-h-[480px] flex flex-col items-center justify-center">{!unlimited ? (<div className="absolute top-0 left-0 w-full h-2 bg-stone-800"><div className={`h-full transition-all duration-1000 linear ${time <= 3 ? 'bg-red-600' : 'bg-indigo-500'}`} style={{ width: `${(time / 10) * 100}%` }}></div></div>) : (<div className="absolute top-0 left-0 w-full h-2 bg-emerald-900/30"></div>)}<div className="absolute top-3 left-3 text-sm font-mono text-stone-400">{unlimited ? <span className="text-emerald-400 flex items-center gap-1"><Clock size={14}/> ∞</span> : <React.Fragment>解鎖倒數: <span className={time <= 3 ? 'text-red-500 font-bold' : 'text-white'}>{time}s</span></React.Fragment>}</div><button onClick={onClose} className="absolute top-3 right-3 text-stone-500 hover:text-white z-20 p-2 bg-black/20 rounded-full hover:bg-red-900/50 transition-colors">✕</button><div className={`w-full transition-opacity duration-300 ${status !== 'playing' ? 'opacity-30 blur-sm pointer-events-none' : 'opacity-100'}`}>{render()}</div>{status === 'won' && (<div className="absolute inset-0 flex flex-col items-center justify-center bg-indigo-900/95 z-30 animate-fadeIn"><div className="w-24 h-24 rounded-full bg-indigo-500 flex items-center justify-center mb-6 shadow-[0_0_40px_white] animate-bounce"><Unlock size={48} className="text-white" /></div><h3 className="text-3xl font-bold text-white tracking-widest text-shadow-lg">{unlimited ? '試煉通過' : '解除成功'}</h3></div>)}{status === 'lost' && (<div className="absolute inset-0 flex flex-col items-center justify-center bg-red-900/95 z-30 animate-fadeIn"><AlertTriangle size={64} className="text-white mb-4 animate-pulse"/><h3 className="text-2xl font-bold text-white">失敗</h3></div>)}</div></div> );
+        };
+
+        const SoulBreakingCorridor = () => {
+            const [stage, setStage] = useState(STAGES.INTRO);
+            const [character, setCharacter] = useState('AOI');
+            const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
+            const [corruption, setCorruption] = useState(0);
+            const [dialogueQueue, setDialogueQueue] = useState([]);
+            const [currentDialogue, setCurrentDialogue] = useState(null);
+            const [gameSeedData, setGameSeedData] = useState(null);
+            const [hasBell, setHasBell] = useState(false);
+            const [hasMirror, setHasMirror] = useState(false);
+            const [hasSword, setHasSword] = useState(false);
+            const [knifeChoice, setKnifeChoice] = useState(null);
+            const [phase1Placed, setPhase1Placed] = useState([]);
+            const [unlockedItems, setUnlockedItems] = useState({});
+            const [activeMinigame, setActiveMinigame] = useState(null);
+            const [showPhase1Hint, setShowPhase1Hint] = useState(false);
+            const [phase2Challenges, setPhase2Challenges] = useState({ shooter: false, flip: false, maze: false, archery: false });
+            const [phase2Solved, setPhase2Solved] = useState(false);
+            const [phase2Input, setPhase2Input] = useState(50);
+            const [finalCodeInput, setFinalCodeInput] = useState([]);
+            const [showHint, setShowHint] = useState(null);
+            const [phase3Sequence, setPhase3Sequence] = useState([]);
+            const [phase3Progress, setPhase3Progress] = useState(0);
+            const [isMuted, setIsMuted] = useState(false);
+            const [selectedElementId, setSelectedElementId] = useState(null);
+            const [isFoggy, setIsFoggy] = useState(true);
+
+            useEffect(() => {
+                const types = ['sync', 'mash', 'align', 'memory', 'rotary', 'balance', 'glyph', 'ghost', 'tiangan', 'clean'];
+                const shuffled = types.sort(() => Math.random() - 0.5);
+                const elements = [...RAW_ELEMENTS].sort(() => Math.random() - 0.5).map((el, i) => ({ ...el, minigame: shuffled[i] || 'sync' }));
+                const ghostA = Math.floor(Math.random() * 11) + 5;
+                const dirs = ['北', '東', '南', '西'].sort(() => Math.random() - 0.5);
+                setPhase3Sequence(dirs);
+                setGameSeedData({ p1Elements: elements, p2GhostA: ghostA, p2TargetFreq: ghostA * 2, p3Sequence: dirs });
+                queueDialogue(SCRIPTS.INTRO_START);
+            }, []);
+
+            const queueDialogue = (arr) => setDialogueQueue(p => [...p, ...arr]);
+            useEffect(() => { if (!currentDialogue && dialogueQueue.length) { setCurrentDialogue(dialogueQueue[0]); setDialogueQueue(p => p.slice(1)); } }, [currentDialogue, dialogueQueue]);
+            useEffect(() => { if (stage===STAGES.INTRO||stage===STAGES.ENDING||currentDialogue) return; const t = setInterval(() => setTimeLeft(p => { if (p <= 0) { setStage(STAGES.ENDING); return 0; } return p - 1; }), 1000); return () => clearInterval(t); }, [stage, currentDialogue]);
+
+            const handleNext = () => { SoundManager.init(); SoundManager.startBGM(); setCurrentDialogue(null); if (stage === STAGES.INTRO && !dialogueQueue.length) { setStage(STAGES.PHASE1); queueDialogue(SCRIPTS.PHASE1_START); } if (stage === STAGES.PHASE1_COMPLETE && !dialogueQueue.length) { setStage(STAGES.PHASE2); queueDialogue(SCRIPTS.PHASE2_START); } };
+            const toggleMute = () => { setIsMuted(SoundManager.toggleMute()); };
+            const switchChar = () => { SoundManager.playSFX('click'); setCharacter(p => p === 'AOI' ? 'REN' : 'AOI'); };
+            
+            // Modified increaseCorruption to trigger Game Over
+            const incCorr = (a) => { 
+                SoundManager.playSFX('heartbeat'); 
+                setCorruption(p => {
+                    const nextVal = Math.min(100, p + a);
+                    if (nextVal >= 100) {
+                        setTimeout(() => setStage(STAGES.ENDING), 500); // Small delay for effect
+                    }
+                    return nextVal;
+                }); 
+                if (corruption + a > 60 && Math.random() > 0.7) queueDialogue([{ speaker: 'MASK', text: '聽見了嗎...那是你自己心跳停止的聲音...' }]); 
+            };
+
+            const useBell = () => {
+                SoundManager.playSFX('success');
+                setIsFoggy(false);
+                queueDialogue([{ speaker: 'SYSTEM', text: '鈴聲迴盪，迷霧暫時散去...' }]);
+                setTimeout(() => {
+                    setIsFoggy(true);
+                }, 5000);
+            };
+
+            // Modified Phase 1 Check Logic for Penalty
+            useEffect(() => { 
+                if (stage !== STAGES.PHASE1) return;
+                
+                if (phase1Placed.length === 4) {
+                    const correct = ['water', 'wood', 'fire', 'earth'];
+                    const isCorrect = phase1Placed.every((p, i) => p.id === correct[i]);
+                    
+                    if (isCorrect) {
+                         if (!hasBell) {
+                            SoundManager.playSFX('unlock'); 
+                            setHasBell(true); 
+                            setStage(STAGES.PHASE1_COMPLETE); 
+                            queueDialogue(SCRIPTS.PHASE1_COMPLETE);
+                         }
+                    } else {
+                        // Incorrect sequence - Penalty
+                        SoundManager.playSFX('error');
+                        incCorr(5); // +5% Corruption
+                        queueDialogue([{ speaker: 'SYSTEM', text: '序列錯誤！靈力反噬... (侵蝕度 +5%)' }]);
+                        setTimeout(() => setPhase1Placed([]), 1000); // Reset after delay
+                    }
+                }
+            }, [phase1Placed, hasBell, stage]);
+
+            // Phase 1 Render
+            const renderPhase1 = () => {
+                const list = gameSeedData ? gameSeedData.p1Elements : [];
+                const allUnlocked = Object.keys(unlockedItems).length === list.length;
+
+                // Add remove handler
+                const handleRemove = (index) => {
+                    SoundManager.playSFX('click');
+                    const newPlaced = [...phase1Placed];
+                    newPlaced.splice(index, 1);
+                    setPhase1Placed(newPlaced);
+                };
+
+                const handlePlaceClick = () => {
+                    if (!selectedElementId) return;
+                    const item = list.find(i => i.id === selectedElementId);
+                    if (item && !phase1Placed.find(p => p.id === item.id) && phase1Placed.length < 4) {
+                        SoundManager.playSFX('click');
+                        setPhase1Placed([...phase1Placed, item]);
+                        setSelectedElementId(null);
+                    }
+                }
+
+                return (
+                    <div className="max-w-5xl mx-auto mt-32 p-6 animate-fadeIn">
+                        {activeMinigame && 
+                            <UnlockMinigame 
+                                gameType={activeMinigame.type} 
+                                onComplete={(s) => { if (s) { setUnlockedItems(p => ({ ...p, [activeMinigame.index]: true })); setActiveMinigame(null); } }} 
+                                onClose={() => setActiveMinigame(null)} 
+                                onFail={() => { incCorr(5); queueDialogue([{speaker: 'SYSTEM', text: '解鎖失敗...精神受到衝擊 (侵蝕度 +5%)'}]); }}
+                            />
+                        }
+                        <div className="bg-stone-900/80 border border-stone-700 p-8 rounded-2xl shadow-2xl backdrop-blur relative overflow-hidden">
+                            <div className="flex justify-between items-start mb-6 relative z-10"><div><h2 className="text-3xl font-bold text-stone-200 mb-2">I. 陰陽淨化</h2><p className="text-stone-400">找出牆上隱藏的五行線索，依序排列。</p></div><button onClick={() => { SoundManager.playSFX('click'); setPhase1Placed([]); }} className="btn-secondary text-xs flex items-center gap-2"><RotateCcw size={14}/> 重置</button></div>
+                            {showPhase1Hint && <div className="mb-6 p-4 bg-amber-900/20 border border-amber-600/30 rounded-lg animate-fadeIn text-amber-200/80 text-sm">牆上浮現出金色的古文：「流動生根(水→木)，根燃為燼(木→火)，燼歸於地(火→土)。」</div>}
+                            <div className="grid grid-cols-4 md:grid-cols-5 gap-4 mb-12 p-6 bg-stone-950/60 rounded-xl border border-stone-800">
+                                {list.map((item, idx) => {
+                                    const isPlaced = phase1Placed.find(p => p.id === item.id);
+                                    if (isPlaced) return <div key={idx} className="w-full h-24 border-2 border-stone-800/50 rounded-lg bg-stone-900/20"></div>;
+                                    if (!unlockedItems[idx]) return <button key={idx} onClick={() => { SoundManager.playSFX('click'); setActiveMinigame({ index: idx, type: item.minigame }) }} className="w-full h-24 bg-stone-900 border border-indigo-500/30 rounded-lg flex flex-col items-center justify-center group hover:border-indigo-400"><Lock size={20} className="text-indigo-400 mb-2"/><span className="text-[10px] text-indigo-300/70 font-mono">LOCKED</span></button>;
+                                    return <div key={item.id} onClick={() => { if(phase1Placed.length<4){SoundManager.playSFX('click'); if(selectedElementId===item.id){setSelectedElementId(null);} else setSelectedElementId(item.id);} }} className={`w-full h-24 ${item.color} border-2 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:-translate-y-1 transition-transform ${selectedElementId===item.id?'ring-2 ring-white scale-105 shadow-[0_0_15px_white]':''}`}><span className="text-3xl mb-1">{item.icon}</span><span className="font-bold text-white">{item.name}</span></div>;
+                                })}
+                            </div>
+                            <button onClick={() => { if(allUnlocked){SoundManager.playSFX('click'); setShowPhase1Hint(!showPhase1Hint);} }} disabled={!allUnlocked} className={`w-full py-4 mb-8 rounded-xl border-2 font-bold flex items-center justify-center gap-3 transition-all ${allUnlocked?'border-amber-500 bg-amber-900/60 text-amber-100':'border-stone-800 bg-stone-900/50 text-stone-600 grayscale'}`}>{allUnlocked?<Eye size={24}/>:<Lock size={24}/>} 檢視牆面</button>
+                            
+                            <div 
+                                onClick={handlePlaceClick} 
+                                className={`border-2 border-dashed rounded-xl p-8 min-h-[200px] flex flex-col items-center justify-center gap-6 transition-colors ${selectedElementId ? 'border-indigo-500 bg-indigo-900/20 cursor-pointer animate-pulse' : 'border-stone-600 bg-black/20'}`}
+                            >
+                                <div className="flex items-center gap-2 text-stone-400 uppercase tracking-widest text-sm font-bold">
+                                    <MoveRight size={16}/> 儀式序列 (點擊上方元素後點擊此處放入)
+                                </div>
+                                
+                                {phase1Placed.length === 0 && !selectedElementId && (
+                                    <div className="text-stone-600 text-sm">尚未放入任何元素</div>
+                                )}
+
+                                <div className="flex gap-4 flex-wrap justify-center">
+                                    {phase1Placed.map((it, i) => (
+                                        <div key={i} onClick={(e) => { e.stopPropagation(); handleRemove(i); }} className={`w-20 h-28 ${it.color} border-2 rounded-lg flex flex-col items-center justify-center text-white shadow-xl animate-popIn cursor-pointer relative group hover:scale-95 transition-transform`}>
+                                            <span className="text-2xl mb-2">{it.icon}</span>
+                                            <span className="font-bold">{it.name}</span>
+                                            <div className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {Array(4 - phase1Placed.length).fill(0).map((_, i) => (
+                                        <div key={i} className={`w-20 h-28 border-2 border-stone-800 bg-stone-900/30 rounded-lg flex items-center justify-center ${selectedElementId && i === 0 ? 'border-indigo-500/50 box-glow' : ''}`}>
+                                            {selectedElementId && i === 0 ? <span className="text-indigo-500 text-2xl animate-bounce">+</span> : <span className="text-stone-700 text-xl font-mono">{phase1Placed.length + i + 1}</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                {selectedElementId && <div className="text-indigo-400 text-sm font-bold bg-black/50 px-4 py-1 rounded-full border border-indigo-500/50">點擊此處將選取的元素放入</div>}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // Phase 2 Render
+            const renderPhase2 = () => {
+                const tf = gameSeedData ? gameSeedData.p2TargetFreq : 30;
+                const allDone = Object.values(phase2Challenges).every(v=>v);
+                const chal = [{id:'shooter',n:'射擊',i:<Rocket/>},{id:'flip',n:'記憶',i:<Copy/>},{id:'maze',n:'導航',i:<Navigation/>},{id:'archery',n:'專注',i:<Target/>}];
+                return (
+                    <div className="max-w-5xl mx-auto mt-32 p-6 animate-fadeIn">
+                        {activeMinigame && <UnlockMinigame gameType={activeMinigame.type} onComplete={(s)=>{if(s){setPhase2Challenges(p=>({...p,[activeMinigame.id]:true}));setActiveMinigame(null);}}} onClose={()=>setActiveMinigame(null)}/>}
+                        <div className="grid md:grid-cols-2 gap-8">
+                            <div className="bg-stone-900 border border-stone-700 p-8 rounded-2xl shadow-2xl"><h3 className="text-2xl font-bold text-stone-200 mb-6 text-center">四大試煉</h3><div className="grid grid-cols-2 gap-4">{chal.map(c=><button key={c.id} onClick={()=>{if(!phase2Challenges[c.id]){SoundManager.playSFX('click');setActiveMinigame({id:c.id,type:c.id})}}} disabled={phase2Challenges[c.id]} className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 ${phase2Challenges[c.id]?'bg-emerald-900/30 border-emerald-500/50 text-emerald-400':'bg-stone-800 border-stone-600 text-stone-400 hover:border-indigo-400'}`}>{c.i}<span className="font-bold">{c.n}</span></button>)}</div></div>
+                            <div className="bg-black border border-stone-800 p-8 rounded-2xl shadow-2xl flex flex-col justify-between">
+                                <div><h3 className="text-xl font-bold text-stone-300 mb-6">II. 頻率同步</h3><div className={`p-6 rounded border transition-all ${allDone?'bg-emerald-900/20 border-emerald-500/30':'bg-stone-900/50 border-stone-800'}`}>{allDone?<div className="text-center text-emerald-400 font-bold text-5xl">{tf}</div>:<div className="text-center py-8 text-stone-500"><Lock size={48} className="mx-auto mb-4 opacity-50"/>鎖定中</div>}</div></div>
+                                <div className="mt-8">{character==='REN'?<React.Fragment><div className={`flex items-center gap-4 mb-6 transition-opacity ${!allDone?'opacity-50 pointer-events-none':''}`}><input type="range" min="0" max="100" value={phase2Input} onChange={(e)=>setPhase2Input(e.target.value)} className="w-full h-3 bg-stone-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"/><span className="text-3xl font-mono text-emerald-400 w-20 text-right">{phase2Input}</span></div><button onClick={()=>{if(parseInt(phase2Input)===tf){SoundManager.playSFX('unlock');setHasMirror(true);setPhase2Solved(true);setStage(STAGES.PHASE3);queueDialogue(SCRIPTS.PHASE3_START);}else{SoundManager.playSFX('error');incCorr(10);queueDialogue([{speaker:'MASK',text:'錯了...頻率不對...'}]);}}} disabled={!allDone} className={`btn-primary w-full py-4 text-lg border-2 ${allDone?'bg-emerald-800 border-emerald-500':'bg-stone-800 border-stone-600 text-stone-500'}`}>鎖定頻率</button></React.Fragment>:<div className="text-center p-8 border-2 border-dashed border-stone-800 text-stone-600">等待判讀士操作...</div>}</div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // Phase 3 Render
+            const renderPhase3 = () => {
+                const seq = gameSeedData ? gameSeedData.p3Sequence : [];
+                const handleComp = (d) => { if(seq[phase3Progress]===d){SoundManager.playSFX('hover');const n=phase3Progress+1;setPhase3Progress(n);if(n===4){SoundManager.playSFX('unlock');setHasSword(true);setStage(STAGES.FINALE_CHOICE);queueDialogue(SCRIPTS.FINALE_CHOICE);}}else{setPhase3Progress(0);SoundManager.playSFX('error');incCorr(5);alert("方位錯誤！");} };
+                
+                return (
+                    <div className="max-w-4xl mx-auto mt-32 p-6 animate-fadeIn text-center relative">
+                        <h2 className="text-3xl font-bold text-stone-200 mb-12">III. 方位序列</h2>
+                        
+                        <div className="mb-8">
+                             <button 
+                                onClick={useBell}
+                                disabled={!isFoggy} 
+                                className={`px-6 py-3 rounded-full border-2 font-bold flex items-center justify-center gap-2 mx-auto transition-all ${!isFoggy ? 'bg-stone-800 text-stone-600 border-stone-700' : 'bg-amber-900 border-amber-500 text-amber-100 hover:scale-105 animate-pulse'}`}
+                            >
+                                <Bell size={20} /> {!isFoggy ? '迷霧已散去...' : '搖動鎮魂鈴 (驅散迷霧)'}
+                            </button>
+                        </div>
+
+                        <div className="relative w-80 h-80 mx-auto">
+                            {/* Fog Layer - Completely opaque background now */}
+                            {isFoggy && character === 'AOI' && (
+                                <div className="absolute inset-[-20px] z-20 bg-stone-950 flex items-center justify-center rounded-full border-4 border-stone-800 transition-opacity duration-1000 animate-fog">
+                                    <div className="text-stone-400 flex flex-col items-center">
+                                        <CloudFog size={48} className="mb-2"/>
+                                        <span>濃霧籠罩...無法辨識方位</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="absolute inset-0 m-auto w-48 h-48 rounded-full bg-stone-900 border-4 border-stone-700 flex items-center justify-center shadow-2xl z-10">
+                                {character==='AOI' ? 
+                                    <div className="flex flex-col items-center"><Compass size={48} className="text-amber-500 mb-2"/><div className="text-stone-300 font-bold">方位顯現</div></div> 
+                                    : <div className="text-stone-600 font-mono text-sm">AWAITING<br/><span className="text-emerald-500 text-lg font-bold">{phase3Progress}/4</span></div>
+                                }
+                            </div>
+                            
+                            {character==='AOI'?<React.Fragment>{['北','南','西','東'].map((d,i)=><div key={d} className={`absolute flex flex-col items-center ${d==='北'?'top-0 left-1/2 -translate-x-1/2 -translate-y-8':d==='南'?'bottom-0 left-1/2 -translate-x-1/2 translate-y-8':d==='西'?'left-0 top-1/2 -translate-x-8 -translate-y-1/2':'right-0 top-1/2 translate-x-8 -translate-y-1/2'}`}><div className="w-8 h-8 rounded-full bg-stone-800 border border-stone-600 flex items-center justify-center text-amber-400 font-bold mb-1">{seq.indexOf(d)+1}</div><span className="text-stone-400 text-sm">{d}</span></div>)}</React.Fragment>
+                            : <React.Fragment>{['北','南','西','東'].map(d=><button key={d} onClick={()=>handleComp(d)} className={`absolute w-24 py-3 bg-stone-800 border border-stone-600 rounded hover:bg-amber-900 transition-all shadow-lg flex justify-between px-4 ${d==='北'?'top-0 left-1/2 -translate-x-1/2 -translate-y-4':d==='南'?'bottom-0 left-1/2 -translate-x-1/2 translate-y-4':d==='西'?'left-0 top-1/2 -translate-y-1/2 -translate-x-4':'right-0 top-1/2 -translate-y-1/2 translate-x-4'}`}><span>{d}</span><span className="text-stone-500 text-xs">[]</span></button>)}</React.Fragment>}
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderFinaleChoice = () => (
+                <div className="fixed inset-0 z-40 bg-black/90 flex items-center justify-center p-6 animate-fadeIn">
+                    <div className="max-w-4xl w-full">
+                        <h2 className="text-4xl font-bold text-center text-red-600 mb-12 tracking-[1em] uppercase shadow-red-glow">道德抉擇</h2>
+                        <div className="grid md:grid-cols-2 gap-8">
+                            <button onClick={()=>{SoundManager.playSFX('click');setKnifeChoice('PURIFY');setCorruption(p=>Math.max(0,p-20));queueDialogue([{speaker:'SYSTEM',text:'淨化確認。'}]);setStage(STAGES.FINALE_CODE);}} className="group relative p-8 bg-blue-950/20 border-2 border-blue-900 hover:bg-blue-900/40 hover:border-blue-500 transition-all rounded-xl"><Droplets size={64} className="text-blue-500 mx-auto mb-6"/><h3 className="text-2xl font-bold text-blue-300 mb-4">淨化之道</h3><p className="text-blue-200/60 text-sm">花費時間與鹽巴淨化短刀。</p></button>
+                            <button onClick={()=>{SoundManager.playSFX('click');setKnifeChoice('CUT');incCorr(40);setTimeLeft(p=>p+300);queueDialogue([{speaker:'MASK',text:'這才是效率。'}]);setStage(STAGES.FINALE_CODE);}} className="group relative p-8 bg-red-950/20 border-2 border-red-900 hover:bg-red-900/40 hover:border-red-500 transition-all rounded-xl"><Sword size={64} className="text-red-500 mx-auto mb-6"/><h3 className="text-2xl font-bold text-red-400 mb-4">力量之道</h3><p className="text-red-200/60 text-sm">直接切斷束縛。</p></button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderFinaleCode = () => {
+                const codeItems = [...RAW_ELEMENTS, ...NUMBERS, ...DIRECTIONS];
+                
+                // Get answer for cheat sheet - Modified First 4 and Last 4 Digits
+                const tf = gameSeedData.p2TargetFreq.toString();
+                const seq = gameSeedData.p3Sequence;
+                const answerList = [
+                    '💧 (水)', '🌲 (木)', '🔥 (火)', '⛰️ (土)', // Modified
+                    tf[0], tf[1], 
+                    seq[0], seq[1], seq[2], seq[3] // Directions
+                ];
+
+                const handleKey = (it) => { if(finalCodeInput.length>=10)return; SoundManager.playSFX('click'); const n=[...finalCodeInput,it]; setFinalCodeInput(n); if(n.length===10){ 
+                    const mapDirToId = { '北': 'dir_n', '東': 'dir_e', '南': 'dir_s', '西': 'dir_w' };
+                    // Modified expected array: earth instead of metal
+                    const expect = ['water','wood','fire','earth', `num_${tf[0]}`, `num_${tf[1]}`, mapDirToId[seq[0]], mapDirToId[seq[1]], mapDirToId[seq[2]], mapDirToId[seq[3]]];
+                    if(n.every((v,i)=>v.id===expect[i])) { SoundManager.playSFX('success'); setStage(STAGES.ENDING); } else { SoundManager.playSFX('error'); incCorr(20); setFinalCodeInput([]); alert("真名錯誤！"); }
+                }};
+                return (
+                    <div className="max-w-4xl mx-auto mt-32 p-6 animate-fadeIn">
+                        <div className="text-center mb-12"><h2 className="text-3xl font-bold text-stone-200 mb-4">最終儀式：鎮魂真名</h2></div>
+                        <div className="bg-stone-900 border-2 border-stone-800 p-8 rounded-2xl shadow-2xl">
+                            <div className="flex gap-2 justify-center mb-8 p-4 bg-black/40 rounded-xl min-h-[5rem] items-center flex-wrap">{Array(10).fill(null).map((_,i)=><div key={i} className="w-8 h-10 border-b-2 border-stone-600 flex items-center justify-center text-lg text-stone-300">{finalCodeInput[i]?.icon||''}</div>)}</div>
+                            <div className="grid grid-cols-5 gap-3 max-w-2xl mx-auto">{codeItems.map(it=><button key={it.id} onClick={()=>handleKey(it)} className={`aspect-square rounded-lg flex flex-col items-center justify-center text-lg shadow-md active:scale-95 ${it.type==='number'?'bg-stone-800 border-stone-600': it.type === 'direction' ? 'bg-slate-700 border-slate-500' : 'text-white border-transparent '+it.color}`}>{it.icon}</button>)}<button onClick={()=>{SoundManager.playSFX('click');setFinalCodeInput([])}} className="col-span-2 bg-red-900 text-red-100 rounded-lg flex items-center justify-center gap-2 hover:bg-red-800"><RotateCcw size={18}/> 重置</button></div>
+                        </div>
+                        <div className="text-center mt-8"><button onClick={()=>{SoundManager.playSFX('click');setShowHint(!showHint)}} className="btn-secondary flex items-center justify-center gap-2 mx-auto"><Brain size={16}/> 查看九條蒼月的最終筆記</button>
+                        {showHint && (
+                           <div className="mt-6 p-6 bg-stone-900/90 rounded-xl border-2 border-indigo-500/30 text-left space-y-4 animate-fadeIn max-w-lg mx-auto">
+                              <h4 className="text-indigo-400 font-bold border-b border-indigo-500/30 pb-2 mb-2">鎮魂真名構成 (共10位)</h4>
+                              <div className="space-y-3 text-sm">
+                                <div className="flex gap-3"><span className="text-amber-500 font-mono font-bold">[1-4]</span><div><p className="text-stone-300 font-bold">五行基礎 (固定序列)</p><p className="text-stone-500 text-xs">萬物始於水，終於土。<br/>(順序：水 &rarr; 木 &rarr; 火 &rarr; 土)</p></div></div>
+                                <div className="flex gap-3"><span className="text-emerald-500 font-mono font-bold">[5-6]</span><div><p className="text-stone-300 font-bold">靈魂頻率 (來自數列)</p><p className="text-stone-500 text-xs">輸入同步成功的兩位數頻率。</p></div></div>
+                                <div className="flex gap-3"><span className="text-red-500 font-mono font-bold">[7-10]</span><div><p className="text-stone-300 font-bold">方位順序 (來自羅盤)</p><p className="text-stone-500 text-xs">依照第三階段迷霧散去時看見的方位順序輸入。</p></div></div>
+                              </div>
+                              <div className="mt-4 pt-4 border-t border-stone-700">
+                                  <p className="text-xs text-stone-500 mb-2 font-mono">DEBUG_MODE_ACTIVATED // 答案預覽:</p>
+                                  <div className="flex flex-wrap gap-2 text-emerald-400 font-bold font-mono bg-black/40 p-2 rounded">
+                                      {answerList.map((a, i) => <span key={i}>{a}</span>)}
+                                  </div>
+                              </div>
+                           </div>
+                        )}
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderEnding = () => {
+                let type='BAD'; 
+                // Check if corruption reached 100 first
+                if (corruption >= 100) {
+                    type = 'BAD'; 
+                } else if(timeLeft > 0) { 
+                    if(knifeChoice==='PURIFY' && corruption < 40) type='TRUE'; 
+                    else type='NORMAL'; 
+                } else if(timeLeft <= 0) {
+                    // Time out
+                    if(corruption > 80 && knifeChoice==='CUT') type='HIDDEN';
+                    else type='BAD';
+                }
+
+                const D = { 
+                    TRUE: {t:"真結局：陰陽傳承者",c:"text-amber-400",d:"鎮魂鎖發出耀眼金光。逢魔之影的低語徹底消失。你們獲得九條蒼月的最終卷軸，被認可為蒼月一脈的真正傳承者。"}, 
+                    NORMAL: {t:"常規結局：代價與羈絆",c:"text-blue-400",d:"封印加固了，但因儀式純淨度不足，你們的手臂上留下了鬼氣印記。逃脫後，兩人的影子偶爾會交疊出第三個詭異的形狀..."}, 
+                    BAD: {t:"失敗結局：化為鬼宿",c:"text-stone-600",d: corruption >= 100 ? "心智徹底崩壞。夜叉面佔據了你的身體..." : "時間耗盡。黑色霧氣噴湧而出..."}, 
+                    HIDDEN: {t:"隱藏結局：虛無的共生",c:"text-red-600",d:"「謝謝你的款待...」你們走出了神社，但影子卻融合成了巨大的惡鬼。"} 
+                };
+                return <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center p-8 text-center animate-fadeIn"><h1 className={`text-4xl font-bold mb-8 ${D[type].c}`}>{D[type].t}</h1><p className="text-stone-400 max-w-2xl text-lg mb-12">{D[type].d}</p><button onClick={()=>window.location.reload()} className="px-8 py-3 border border-stone-800 text-stone-500 hover:text-white rounded-full">重新開始</button></div>;
+            };
+
+            return (
+                <div className="min-h-screen relative pb-32">
+                    {stage!==STAGES.INTRO && stage!==STAGES.ENDING && <React.Fragment><header className="fixed top-0 left-0 w-full h-16 bg-stone-950 border-b border-stone-800 flex items-center justify-between px-4 z-40 shadow-md"><div className="flex items-center gap-4 text-stone-300 font-mono font-bold"><Clock size={20}/>{Math.floor(timeLeft/60).toString().padStart(2,'0')}:{Math.floor(timeLeft%60).toString().padStart(2,'0')}</div><div className="flex items-center gap-4"><button onClick={toggleMute} className="p-2 text-stone-400 hover:text-white">{isMuted?<VolumeX size={20}/>:<Volume2 size={20}/>}</button><button onClick={switchChar} className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-bold ${character==='AOI'?'bg-indigo-900/80 border-indigo-500 text-indigo-100':'bg-emerald-900/80 border-emerald-500 text-emerald-100'}`}>{character==='AOI'?<Eye size={16}/>:<Terminal size={16}/>} 視角：{character==='AOI'?'遠野葵':'神崎蓮'}</button></div></header><ObjectiveBar stage={stage} corruption={corruption}/></React.Fragment>}
+                    {stage===STAGES.INTRO && <div className="flex flex-col items-center justify-center min-h-screen p-8 text-center animate-fadeIn"><h1 className="text-6xl font-bold text-red-900 mb-4 glitch-effect">魂斷迴廊</h1><p className="text-stone-500 animate-pulse">點擊任意處開始同步...</p><button className="absolute inset-0 w-full h-full cursor-default" onClick={handleNext}></button></div>}
+                    {stage===STAGES.PHASE1 && renderPhase1()}
+                    {stage===STAGES.PHASE1_COMPLETE && <div className="min-h-screen flex items-center justify-center"><Activity size={64} className="text-stone-700 animate-spin"/></div>}
+                    {stage===STAGES.PHASE2 && renderPhase2()}
+                    {stage===STAGES.PHASE3 && renderPhase3()}
+                    {stage===STAGES.FINALE_CHOICE && renderFinaleChoice()}
+                    {stage===STAGES.FINALE_CODE && renderFinaleCode()}
+                    {stage===STAGES.ENDING && renderEnding()}
+                    <DialogueBox dialogue={currentDialogue} onNext={handleNext} />
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<SoulBreakingCorridor />);
+    </script>
+</body>
+</html>
